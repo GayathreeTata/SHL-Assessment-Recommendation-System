@@ -38,8 +38,16 @@ def load_model():
 
 # Main Streamlit app
 def main():
-    st.title("💡SHL Assessment Recommendation System")
-    
+    # st.title("💡SHL Assessment Recommendation System")
+
+    st.markdown(
+    """
+    <h1 style='text-align: center; color: #4B8BBE;'>💡 SHL Assessment Recommendation System</h1>
+    <h4 style='text-align: center; color: #ccc;'>Find the best assessments based on your query using AI!</h4>
+    <hr style="border: 1px solid #333;">
+    """,
+    unsafe_allow_html=True
+)
     # Load data and model
     catalog_df = load_data()
     catalog_df['combined'] = catalog_df.apply(combine_row, axis=1)
