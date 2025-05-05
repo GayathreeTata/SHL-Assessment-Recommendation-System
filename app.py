@@ -4,6 +4,19 @@ from query_functions import query_handling_using_LLM_updated
 import asyncio
 from query_functions import query_handling_using_LLM_updated
 
+import asyncio
+
+def run_async(coro, *args, **kwargs):
+    """
+    Create a fresh event loop, run the coroutine, then tear it down.
+    """
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro(*args, **kwargs))
+    finally:
+        loop.close()
+
+
 st.set_page_config(page_title="SHL Assessment Recommendation System", layout="centered")
 
 st.markdown(
