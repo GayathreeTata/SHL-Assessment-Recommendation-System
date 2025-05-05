@@ -23,7 +23,7 @@ def startup_event():
     global model, gemini_model, catalog_df, corpus, corpus_embeddings
 
     load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("AIzaSyAMV8eWO3j9-2SFSNUL8ynYhCztcXFi9CY")
 
     print("🚀 Loading models and data...")
 
