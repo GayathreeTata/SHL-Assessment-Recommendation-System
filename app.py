@@ -38,7 +38,7 @@ def load_model():
 
 # Main Streamlit app
 def main():
-    st.title("SHL Assessment Recommendation System")
+    st.title("📝SHL Assessment Recommendation System")
     
     # Load data and model
     catalog_df = load_data()
@@ -50,7 +50,7 @@ def main():
     corpus_embeddings = model.encode(corpus, convert_to_tensor=True)
     
     # User input
-    user_query = st.text_input("Enter your job description or assessment needs:")
+    user_query = st.text_input(" Enter your search query here:🔍")
     
     if user_query:
         # Encode the query
