@@ -3,81 +3,115 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 import torch
 import numpy as np
-import asyncio
+from PIL import Image
 
-# Set up asyncio event loop policy for Streamlit
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+# --- SETTINGS ---
+st.set_page_config(
+    page_title="🔍 SHL Assessment Recommender",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Load the mock dataset
+# --- LOAD DATA & MODEL ---
 @st.cache_data
 def load_data():
-    catalog_df = pd.read_csv("SHL_catalog.csv")
-    return catalog_df
+    return pd.read_csv("SHL_catalog.csv")
 
-# Combine row features into a single string
-def combine_row(row):
-    parts = [
-        str(row["Assessment Name"]),
-        str(row["Duration"]),
-        str(row["Remote Testing Support"]),
-        str(row["Adaptive/IRT"]),
-        str(row["Test Type"]),
-        str(row["Skills"]),
-        str(row["Description"]),
-    ]
-    return ' '.join(parts)
-
-# Load the SentenceTransformer model
 @st.cache_resource
 def load_model():
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    return model
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
-# Main Streamlit app
+# --- STYLING ---
+def styled_card(title, skills, test_type, description, score, url):
+    emoji = {
+        "Coding": "💻", "Cognitive": "🧠", "Personality": "😊",
+        "Communication": "🗣️", "Aptitude": "📝"
+    }.get(test_type, "📋")
+    
+    return f"""
+    <div style="
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        background: {'#2d3741' if st.get_option('theme.base') == 'dark' else '#f0f2f6'};
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    ">
+        <h3>{emoji} {title}</h3>
+        <p><b>Skills:</b> {skills}</p>
+        <p><b>Type:</b> {test_type} {emoji}</p>
+        <p><b>Description:</b> {description[:150]}...</p>
+        <p><b>🔗 URL:</b> <a href="{url}" target="_blank">View Assessment</a></p>
+        <div style="background: #e0e0e0; border-radius: 5px; height: 10px;">
+            <div style="background: #4CAF50; width: {score*100}%; height: 10px; border-radius: 5px;"></div>
+        </div>
+        <p><b>Match:</b> {score:.0%}</p>
+    </div>
+    """
+
+# --- MAIN APP ---
 def main():
-    st.title("SHL Assessment Recommendation System")
-    
-    # Load data and model
+    # --- HEADER ---
+    st.title("🔍 SHL Assessment Recommender")
+    st.markdown("""
+    <style>
+    .big-font { font-size:18px !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<p class="big-font">Find the best SHL assessments for your job needs!</p>', unsafe_allow_html=True)
+
+    # --- SIDEBAR FILTERS ---
+    with st.sidebar:
+        st.header("⚙️ Filters")
+        min_duration = st.slider("Minimum Duration (mins)", 10, 60, 20)
+        remote_only = st.checkbox("Remote Testing Only", True)
+
+    # --- LOAD DATA ---
     catalog_df = load_data()
-    catalog_df['combined'] = catalog_df.apply(combine_row, axis=1)
+    catalog_df['combined'] = catalog_df.apply(
+        lambda row: f"{row['Assessment Name']} {row['Skills']} {row['Description']}", axis=1
+    )
     model = load_model()
-    
-    # Generate embeddings for the catalog
-    corpus = catalog_df['combined'].tolist()
-    corpus_embeddings = model.encode(corpus, convert_to_tensor=True)
-    
-    # User input
-    user_query = st.text_input("Enter your job description or assessment needs:")
-    
+    corpus_embeddings = model.encode(catalog_df['combined'].tolist(), convert_to_tensor=True)
+
+    # --- USER INPUT ---
+    user_query = st.text_input(
+        "🔎 Describe your job role or required skills:",
+        placeholder="e.g., 'Python developer with SQL experience'"
+    )
+
     if user_query:
-        # Encode the query
-        query_embedding = model.encode(user_query, convert_to_tensor=True)
-        
-        # Calculate cosine similarities
-        cosine_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
-        top_k = min(5, len(corpus))
-        top_results = torch.topk(cosine_scores, k=top_k)
-        
-        # Display results
-        st.subheader("Top 5 Matching Assessments:")
-        
-        for score, idx in zip(top_results[0], top_results[1]):
+        # --- SEARCH ---
+        with st.spinner("🔍 Finding best matches..."):
+            query_embedding = model.encode(user_query, convert_to_tensor=True)
+            cosine_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
+            top_k = min(5, len(catalog_df))
+            top_indices = torch.topk(cosine_scores, k=top_k).indices
+
+        # --- DISPLAY RESULTS ---
+        st.subheader("🎯 Top Recommendations")
+        for idx in top_indices:
             idx = idx.item()
-            assessment = catalog_df.iloc[idx]
+            row = catalog_df.iloc[idx]
             
-            st.write(f"**Assessment:** {assessment['Assessment Name']}")
-            st.write(f"**Skills:** {assessment['Skills']}")
-            st.write(f"**Test Type:** {assessment['Test Type']}")
-            st.write(f"**Description:** {assessment['Description']}")
-            st.write(f"**Remote Testing Support:** {assessment['Remote Testing Support']}")
-            st.write(f"**Adaptive/IRT:** {assessment['Adaptive/IRT']}")
-            st.write(f"**Duration:** {assessment['Duration']} mins")
-            st.write(f"**URL:** {assessment['URL']}")
-            st.write(f"**Similarity Score:** {score.item():.4f}")
-            st.write("---")
+            # Skip if doesn't match filters
+            if remote_only and row['Remote Testing Support'] != 'Yes':
+                continue
+            if row['Duration'] < min_duration:
+                continue
+            
+            # Display styled card
+            st.markdown(
+                styled_card(
+                    row['Assessment Name'],
+                    row['Skills'],
+                    row['Test Type'],
+                    row['Description'],
+                    cosine_scores[idx].item(),
+                    row['URL']
+                ),
+                unsafe_allow_html=True
+            )
 
 if __name__ == "__main__":
     main()
