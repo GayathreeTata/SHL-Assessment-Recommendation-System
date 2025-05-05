@@ -43,7 +43,7 @@ def styled_card(title, skills, test_type, description, score, url):
         <p><b>Description:</b> {description[:150]}...</p>
         <p><b>🔗 URL:</b> <a href="{url}" target="_blank">View Assessment</a></p>
         <div style="background: #e0e0e0; border-radius: 5px; height: 10px;">
-            <div style="background: #4CAF50; width: {score*100}%; height: 10px; border-radius: 5px;"></div>
+            <div style="background: #5CAF50; width: {score*100}%; height: 10px; border-radius: 5px;"></div>
         </div>
         <p><b>Match:</b> {score:.0%}</p>
     </div>
