@@ -38,7 +38,7 @@ if st.button("Search"):
         with st.spinner("🤖 Thinking... Fetching the best matches for you!"):
             try:
                 # Get results
-                df = query_handling_using_LLM_updated(query)
+                df = run_async(query_handling_using_LLM_updated, query)
 
                 if isinstance(df, pd.DataFrame) and not df.empty:
                     if 'Score' in df.columns:
