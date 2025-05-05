@@ -36,21 +36,130 @@ def load_model():
     model = SentenceTransformer('all-MiniLM-L6-v2')
     return model
 
+# Function to display colored assessment card
+def display_assessment_card(assessment, score):
+    # Create a container with colored border
+    with st.container():
+        # Header with assessment name and score
+        st.markdown(
+            f"""
+            <div style="
+                background-color: #f0f2f6;
+                padding: 10px;
+                border-radius: 5px;
+                border-left: 5px solid #4e79a7;
+                margin-bottom: 10px;
+            ">
+                <h3 style="color: #2c3e50; margin:0;">{assessment['Assessment Name']}</h3>
+                <p style="color: #7f8c8d; margin:0;">Similarity: <span style="color: #e74c3c; font-weight:bold;">{score:.4f}</span></p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Assessment details in a two-column layout
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(
+                f"""
+                <div style="margin-bottom: 10px;">
+                    <p style="margin:0;"><span style="color: #3498db; font-weight:bold;">Skills:</span> {assessment['Skills']}</p>
+                    <p style="margin:0;"><span style="color: #3498db; font-weight:bold;">Test Type:</span> {assessment['Test Type']}</p>
+                    <p style="margin:0;"><span style="color: #3498db; font-weight:bold;">Duration:</span> <span style="color: #27ae60;">{assessment['Duration']} mins</span></p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        with col2:
+            st.markdown(
+                f"""
+                <div style="margin-bottom: 10px;">
+                    <p style="margin:0;"><span style="color: #3498db; font-weight:bold;">Remote Testing:</span> <span style="color: {'#27ae60' if assessment['Remote Testing Support'] == 'Yes' else '#e74c3c'}">{assessment['Remote Testing Support']}</span></p>
+                    <p style="margin:0;"><span style="color: #3498db; font-weight:bold;">Adaptive/IRT:</span> <span style="color: {'#27ae60' if assessment['Adaptive/IRT'] == 'Yes' else '#e74c3c'}">{assessment['Adaptive/IRT']}</span></p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        # Description in an expandable section
+        with st.expander("Description"):
+            st.markdown(
+                f"""
+                <div style="
+                    background-color: #f9f9f9;
+                    padding: 10px;
+                    border-radius: 5px;
+                    border-left: 3px solid #9b59b6;
+                ">
+                    <p style="margin:0; color: #34495e;">{assessment['Description']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        # URL with clickable link
+        st.markdown(
+            f"""
+            <div style="margin-top: 10px;">
+                <a href="{assessment['URL']}" target="_blank" style="
+                    background-color: #3498db;
+                    color: white;
+                    padding: 5px 10px;
+                    text-decoration: none;
+                    border-radius: 3px;
+                    display: inline-block;
+                ">View Assessment Details</a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        st.markdown("---")
+
 # Main Streamlit app
 def main():
-    st.title("SHL Assessment Recommendation System")
+    # Custom CSS for the app
+    st.markdown(
+        """
+        <style>
+            .stTextInput input {
+                border: 2px solid #3498db;
+                border-radius: 5px;
+                padding: 10px;
+            }
+            .stButton button {
+                background-color: #3498db;
+                color: white;
+                border-radius: 5px;
+                padding: 10px 20px;
+                border: none;
+            }
+            .stButton button:hover {
+                background-color: #2980b9;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.title("🔍 SHL Assessment Recommendation System")
+    st.markdown("Find the best SHL assessments for your job requirements")
     
     # Load data and model
     catalog_df = load_data()
     catalog_df['combined'] = catalog_df.apply(combine_row, axis=1)
     model = load_model()
     
-    # Generate embeddings for the catalog
-    corpus = catalog_df['combined'].tolist()
-    corpus_embeddings = model.encode(corpus, convert_to_tensor=True)
-    
-    # User input
-    user_query = st.text_input("Enter your job description or assessment needs:")
+    # User input section with a nice header
+    with st.container():
+        st.subheader("📝 Enter Your Job Description")
+        user_query = st.text_area(
+            "Describe the job role, required skills, or assessment needs:",
+            height=150,
+            placeholder="Example: We need cognitive ability tests for graduate hiring that can be administered remotely and take less than 30 minutes..."
+        )
     
     if user_query:
         # Encode the query
@@ -61,23 +170,17 @@ def main():
         top_k = min(5, len(corpus))
         top_results = torch.topk(cosine_scores, k=top_k)
         
-        # Display results
-        st.subheader("Top 5 Matching Assessments:")
+        # Display results with a nice header
+        st.subheader("🎯 Top 5 Matching Assessments")
+        st.markdown("These assessments best match your requirements:")
         
-        for score, idx in zip(top_results[0], top_results[1]):
-            idx = idx.item()
-            assessment = catalog_df.iloc[idx]
-            
-            st.write(f"**Assessment:** {assessment['Assessment Name']}")
-            st.write(f"**Skills:** {assessment['Skills']}")
-            st.write(f"**Test Type:** {assessment['Test Type']}")
-            st.write(f"**Description:** {assessment['Description']}")
-            st.write(f"**Remote Testing Support:** {assessment['Remote Testing Support']}")
-            st.write(f"**Adaptive/IRT:** {assessment['Adaptive/IRT']}")
-            st.write(f"**Duration:** {assessment['Duration']} mins")
-            st.write(f"**URL:** {assessment['URL']}")
-            st.write(f"**Similarity Score:** {score.item():.4f}")
-            st.write("---")
+        # Progress bar for processing
+        with st.spinner('Finding the best assessments for you...'):
+            # Display each assessment as a card
+            for score, idx in zip(top_results[0], top_results[1]):
+                idx = idx.item()
+                assessment = catalog_df.iloc[idx]
+                display_assessment_card(assessment, score.item())
 
 if __name__ == "__main__":
     main()
