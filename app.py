@@ -3,115 +3,180 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 import torch
 import numpy as np
-from PIL import Image
 
-# --- SETTINGS ---
+# --- SETUP ---
 st.set_page_config(
-    page_title="🔍 SHL Assessment Recommender",
-    page_icon="📊",
+    page_title="🌟 SHL Assessment Genius",
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- LOAD DATA & MODEL ---
+# --- LOAD DATA ---
 @st.cache_data
 def load_data():
-    return pd.read_csv("SHL_catalog.csv")
+    df = pd.read_csv("SHL_catalog.csv")
+    # Add mock columns for demo (replace with real data)
+    df["Job Type"] = np.random.choice(["Remote", "Hybrid", "Full-time"], size=len(df))
+    df["Location"] = np.random.choice(["US", "UK", "India", "Global"], size=len(df))
+    df["Experience"] = np.random.choice(["Fresher", "Early Pro", "Professional"], size=len(df))
+    return df
 
 @st.cache_resource
 def load_model():
     return SentenceTransformer('all-MiniLM-L6-v2')
 
-# --- STYLING ---
-def styled_card(title, skills, test_type, description, score, url):
-    emoji = {
-        "Coding": "💻", "Cognitive": "🧠", "Personality": "😊",
-        "Communication": "🗣️", "Aptitude": "📝"
-    }.get(test_type, "📋")
+# --- STYLED CARD ---
+def assessment_card(title, skills, test_type, score, url, job_type, location, exp_level):
+    color_map = {
+        "Remote": "#FF6B6B", 
+        "Hybrid": "#4ECDC4", 
+        "Full-time": "#FFD166"
+    }
+    exp_color = {
+        "Fresher": "#06D6A0",
+        "Early Pro": "#118AB2",
+        "Professional": "#073B4C"
+    }
     
     return f"""
     <div style="
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-        background: {'#2d3741' if st.get_option('theme.base') == 'dark' else '#f0f2f6'};
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        background: linear-gradient(145deg, {color_map[job_type]} 0%, #f8f9fa 100%);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        border-left: 5px solid {exp_color[exp_level]};
     ">
-        <h3>{emoji} {title}</h3>
-        <p><b>Skills:</b> {skills}</p>
-        <p><b>Type:</b> {test_type} {emoji}</p>
-        <p><b>Description:</b> {description[:150]}...</p>
-        <p><b>🔗 URL:</b> <a href="{url}" target="_blank">View Assessment</a></p>
-        <div style="background: #e0e0e0; border-radius: 5px; height: 10px;">
-            <div style="background: #5CAF50; width: {score*100}%; height: 10px; border-radius: 5px;"></div>
+        <div style="display: flex; justify-content: space-between;">
+            <h3 style="color: #2b2d42; margin: 0;">{title}</h3>
+            <span style="background: {exp_color[exp_level]}; 
+                     color: white; 
+                     padding: 3px 10px; 
+                     border-radius: 20px;
+                     font-size: 12px;">
+                {exp_level}
+            </span>
         </div>
-        <p><b>Match:</b> {score:.0%}</p>
+        <p style="color: #6c757d;"><b>📍 {location}</b> | 🕒 {job_type}</p>
+        <p><b>🔧 Skills:</b> {skills}</p>
+        <p><b>📝 Test Type:</b> {test_type}</p>
+        <div style="background: #e9ecef; border-radius: 10px; height: 10px; margin: 10px 0;">
+            <div style="background: linear-gradient(90deg, #FF9A8B 0%, #FF6B6B 100%); 
+                        width: {score*100}%; 
+                        height: 10px; 
+                        border-radius: 10px;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <a href="{url}" target="_blank" style="
+                background: #4361ee;
+                color: white;
+                padding: 8px 15px;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: bold;
+            ">View Assessment</a>
+            <span style="font-weight: bold; color: #2b2d42;">Match: {score:.0%}</span>
+        </div>
     </div>
     """
 
 # --- MAIN APP ---
 def main():
     # --- HEADER ---
-    st.title("🔍 SHL Assessment Recommender")
     st.markdown("""
     <style>
-    .big-font { font-size:18px !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+    .header {
+        font-family: 'Poppins', sans-serif;
+        color: #4361ee;
+        text-align: center;
+        margin-bottom: 30px;
+    }
     </style>
+    <h1 class="header">🌟 SHL Assessment Genius</h1>
     """, unsafe_allow_html=True)
-    st.markdown('<p class="big-font">Find the best SHL assessments for your job needs!</p>', unsafe_allow_html=True)
 
     # --- SIDEBAR FILTERS ---
     with st.sidebar:
-        st.header("⚙️ Filters")
-        min_duration = st.slider("Minimum Duration (mins)", 10, 60, 20)
-        remote_only = st.checkbox("Remote Testing Only", True)
+        st.markdown("### 🔍 Filters")
+        
+        # Job Type Filter
+        job_types = st.multiselect(
+            "Job Type:",
+            options=["Remote", "Hybrid", "Full-time"],
+            default=["Remote", "Hybrid"]
+        )
+        
+        # Location Filter
+        locations = st.multiselect(
+            "Location:",
+            options=["US", "UK", "India", "Global"],
+            default=["Global"]
+        )
+        
+        # Experience Filter
+        experience = st.multiselect(
+            "Experience Level:",
+            options=["Fresher", "Early Pro", "Professional"],
+            default=["Early Pro", "Professional"]
+        )
+        
+        # Duration Slider
+        min_duration = st.slider(
+            "⏳ Minimum Duration (mins):",
+            10, 60, 30
+        )
 
     # --- LOAD DATA ---
     catalog_df = load_data()
-    catalog_df['combined'] = catalog_df.apply(
-        lambda row: f"{row['Assessment Name']} {row['Skills']} {row['Description']}", axis=1
-    )
     model = load_model()
-    corpus_embeddings = model.encode(catalog_df['combined'].tolist(), convert_to_tensor=True)
+    corpus_embeddings = model.encode(
+        catalog_df['Assessment Name'] + " " + 
+        catalog_df['Skills'] + " " + 
+        catalog_df['Description'],
+        convert_to_tensor=True
+    )
 
-    # --- USER INPUT ---
+    # --- SEARCH BAR ---
     user_query = st.text_input(
-        "🔎 Describe your job role or required skills:",
-        placeholder="e.g., 'Python developer with SQL experience'"
+        "🔎 Describe your job role or skills needed:",
+        placeholder="E.g.: 'Data analyst with SQL experience for remote work'"
     )
 
     if user_query:
-        # --- SEARCH ---
-        with st.spinner("🔍 Finding best matches..."):
+        with st.spinner("✨ Finding your perfect assessments..."):
             query_embedding = model.encode(user_query, convert_to_tensor=True)
             cosine_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
-            top_k = min(5, len(catalog_df))
-            top_indices = torch.topk(cosine_scores, k=top_k).indices
+            catalog_df["Match Score"] = cosine_scores.numpy()
+            
+            # Apply filters
+            filtered_df = catalog_df[
+                (catalog_df["Job Type"].isin(job_types)) &
+                (catalog_df["Location"].isin(locations)) &
+                (catalog_df["Experience"].isin(experience)) &
+                (catalog_df["Duration"] >= min_duration)
+            ].sort_values("Match Score", ascending=False).head(5)
 
-        # --- DISPLAY RESULTS ---
-        st.subheader("🎯 Top Recommendations")
-        for idx in top_indices:
-            idx = idx.item()
-            row = catalog_df.iloc[idx]
-            
-            # Skip if doesn't match filters
-            if remote_only and row['Remote Testing Support'] != 'Yes':
-                continue
-            if row['Duration'] < min_duration:
-                continue
-            
-            # Display styled card
-            st.markdown(
-                styled_card(
-                    row['Assessment Name'],
-                    row['Skills'],
-                    row['Test Type'],
-                    row['Description'],
-                    cosine_scores[idx].item(),
-                    row['URL']
-                ),
-                unsafe_allow_html=True
-            )
+        # --- RESULTS ---
+        st.markdown(f"### 🎯 Top {len(filtered_df)} Matches")
+        if filtered_df.empty:
+            st.warning("No assessments match your filters. Try broadening your search!")
+        else:
+            for _, row in filtered_df.iterrows():
+                st.markdown(
+                    assessment_card(
+                        title=row["Assessment Name"],
+                        skills=row["Skills"],
+                        test_type=row["Test Type"],
+                        score=row["Match Score"],
+                        url=row["URL"],
+                        job_type=row["Job Type"],
+                        location=row["Location"],
+                        exp_level=row["Experience"]
+                    ),
+                    unsafe_allow_html=True
+                )
 
 if __name__ == "__main__":
     main()
