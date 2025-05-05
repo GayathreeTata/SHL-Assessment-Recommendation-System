@@ -1,6 +1,7 @@
 # SHL-Assessment-Recommendation-System
 This challenge is an AI-powered advice device constructed to signify the maximum applicable SHL exams primarily based totally on person queries, task descriptions, or unstructured enter data. It combines NLP strategies and Large Language Models (LLMs) to offer accurate, efficient, and context-conscious consequences via an intuitive frontend interface.
 
+Try it out @https://shl-assessment-recommendation-system-of2blcgyidhxqrfcc4g7b2.streamlit.app/ 
 **Feautures** :
 Recommends SHL assessments based on:
 Job descriptions
