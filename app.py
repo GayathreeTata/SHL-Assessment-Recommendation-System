@@ -79,5 +79,5 @@ def main():
             st.write(f"*Similarity Score:* {score.item():.4f}")
             st.write("---")
 
-if _name_ == "__main__":
+if __name__ == "__main__":
     main()
