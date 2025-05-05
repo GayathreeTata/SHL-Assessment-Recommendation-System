@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from query_functions import query_handling_using_LLM_updated
+import asyncio
+from query_functions import query_handling_using_LLM_updated
 
 st.set_page_config(page_title="SHL Assessment Recommendation System", layout="centered")
 
