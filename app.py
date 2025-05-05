@@ -43,7 +43,7 @@ def main():
     st.markdown(
     """
     <h1 style='text-align: center; color: #4B8BBE;'>💡 SHL Assessment Recommendation System</h1>
-    <h4 style='text-align: center; color: #ccc;'>Find the Suitable Assessments based on Your Qury or Job Description Test using AI!</h4>
+    <h4 style='text-align: center; color: #ccc;'>Find the Suitable Assessments based on Your Query or a Job Description using AI!</h4>
     <hr style="border: 1px solid #333;">
     """,
     unsafe_allow_html=True
